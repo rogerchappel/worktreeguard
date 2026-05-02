@@ -3,24 +3,17 @@
   "version": "0.1.0",
   "description": "Local-first CLI for safe agent worktree leasing and stale lane audits.",
   "type": "module",
+  "bin": { "worktreeguard": "./src/index.js" },
   "main": "./src/index.js",
-  "exports": {
-    ".": "./src/index.js"
-  },
-  "files": [
-    "src",
-    "README.md"
-  ],
+  "exports": { ".": "./src/index.js" },
+  "files": ["src", "README.md", "docs", "examples"],
   "scripts": {
-    "test": "node --test"
+    "check": "node --check src/index.js && node --check test/worktreeguard.test.js",
+    "test": "node --test",
+    "build": "npm run check",
+    "smoke": "bash scripts/smoke.sh"
   },
-  "keywords": [
-    "git",
-    "worktree",
-    "agents",
-    "cli",
-    "workflow"
-  ],
+  "keywords": ["git", "worktree", "agents", "cli", "workflow"],
   "author": "StackForge User",
   "license": "MIT"
 }

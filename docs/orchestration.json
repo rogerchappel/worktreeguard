@@ -1,0 +1,29 @@
+{
+  "project": "worktreeguard",
+  "version": "0.1.0",
+  "mode": "local-first",
+  "commands": {
+    "lease": "worktreeguard lease <repo> --task <slug> --base <branch>",
+    "status": "worktreeguard status <repo> --format json",
+    "doctor": "worktreeguard doctor <repo> --format json",
+    "release": "worktreeguard release <repo> <task> [--force]"
+  },
+  "riskFlags": [
+    "dirty",
+    "stale",
+    "missing-worktree",
+    "duplicate-branch",
+    "missing-upstream"
+  ],
+  "handoff": {
+    "human": "markdown report",
+    "automation": "json report",
+    "blockOn": ["dirty", "missing-worktree", "duplicate-branch"]
+  },
+  "nonGoals": [
+    "hosted service",
+    "telemetry",
+    "autonomous merge",
+    "dirty deletion without force"
+  ]
+}
