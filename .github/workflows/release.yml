@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  RELEASEBOX_REF: v0.1.0
+
+jobs:
+  github-release:
+    name: GitHub release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install ReleaseBox
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch "$RELEASEBOX_REF" https://github.com/rogerchappel/releasebox.git /tmp/releasebox
+          npm --prefix /tmp/releasebox ci
+          npm --prefix /tmp/releasebox run build
+
+      - name: ReleaseBox readiness check
+        run: node /tmp/releasebox/bin/releasebox.js check .
+
+      - name: Run local release gate
+        run: npm run release:check
+
+      - name: Build package artifact
+        run: npm pack
+
+      - name: Generate release notes
+        run: node /tmp/releasebox/bin/releasebox.js notes . > RELEASE_NOTES.md
+
+      - name: Create GitHub release with package artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${GITHUB_REF_NAME}" --notes-file RELEASE_NOTES.md *.tgz
+
+# npm publishing and Homebrew updates are intentionally disabled until reviewed.

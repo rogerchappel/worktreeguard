@@ -3,17 +3,42 @@
   "version": "0.1.0",
   "description": "Local-first CLI for safe agent worktree leasing and stale lane audits.",
   "type": "module",
-  "bin": { "worktreeguard": "./src/index.js" },
+  "bin": {
+    "worktreeguard": "./src/index.js"
+  },
   "main": "./src/index.js",
-  "exports": { ".": "./src/index.js" },
-  "files": ["src", "README.md", "docs", "examples"],
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "docs",
+    "examples"
+  ],
   "scripts": {
     "check": "node --check src/index.js && node --check test/worktreeguard.test.js",
     "test": "node --test",
     "build": "npm run check",
-    "smoke": "bash scripts/smoke.sh"
+    "smoke": "bash scripts/smoke.sh",
+    "release:check": "npm run check && npm test && npm run smoke && npm pack --dry-run"
   },
-  "keywords": ["git", "worktree", "agents", "cli", "workflow"],
+  "keywords": [
+    "git",
+    "worktree",
+    "agents",
+    "cli",
+    "workflow"
+  ],
   "author": "StackForge User",
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rogerchappel/worktreeguard.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rogerchappel/worktreeguard/issues"
+  },
+  "homepage": "https://github.com/rogerchappel/worktreeguard#readme",
+  "packageManager": "npm@11.6.2"
 }
