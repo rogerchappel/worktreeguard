@@ -1,20 +1,33 @@
 # Release candidate readiness
 
-Generated: 2026-05-05T21:24:11Z
+Generated: 2026-05-05T21:27:11Z
 Branch: `release-candidate/readiness`
-Base: `origin/main`
+Base: `main`
 
 ## Verification
 
 Status: PASS
 
 Checks run:
+- `npm ci`
 - `npm run release:check`
 - `bash scripts/validate.sh`
 - `node releasebox check .`
 
 ## Check output summary
 
+    ## npm ci
+    ```
+    npm ci
+    ```
+    ```text
+    
+    up to date, audited 1 package in 254ms
+    
+    found 0 vulnerabilities
+    ```
+    RESULT: 0 (1s)
+    
     ## npm run release:check
     ```
     npm run release:check
@@ -32,9 +45,9 @@ Checks run:
     > worktreeguard@0.1.0 test
     > node --test
     
-    ✔ help and version (0.594459ms)
-    ✔ lease, status json, dirty risk, and release refusal (387.636417ms)
-    ✔ missing worktree is reported from lock (347.075083ms)
+    ✔ help and version (0.64225ms)
+    ✔ lease, status json, dirty risk, and release refusal (326.995417ms)
+    ✔ missing worktree is reported from lock (293.658541ms)
     ℹ tests 3
     ℹ suites 0
     ℹ pass 3
@@ -42,7 +55,7 @@ Checks run:
     ℹ cancelled 0
     ℹ skipped 0
     ℹ todo 0
-    ℹ duration_ms 807.427833
+    ℹ duration_ms 692.416333
     
     > worktreeguard@0.1.0 smoke
     > bash scripts/smoke.sh
@@ -56,6 +69,7 @@ Checks run:
     npm notice 1.5kB docs/ORCHESTRATION.md
     npm notice 4.1kB docs/PRD.md
     npm notice 302B docs/README.md
+    npm notice 4.2kB docs/release-candidate.md
     npm notice 1.7kB docs/TASKS.md
     npm notice 404B examples/agent-handoff.md
     npm notice 1.1kB package.json
@@ -64,11 +78,11 @@ Checks run:
     npm notice name: worktreeguard
     npm notice version: 0.1.0
     npm notice filename: worktreeguard-0.1.0.tgz
-    npm notice package size: 9.6 kB
-    npm notice unpacked size: 24.4 kB
-    npm notice shasum: f10773ca91f99a60047c2c1542433e64012dcc8b
-    npm notice integrity: sha512-yLCyKezG1AJUo[...]vm8zK4BvOs4Ag==
-    npm notice total files: 10
+    npm notice package size: 10.6 kB
+    npm notice unpacked size: 28.6 kB
+    npm notice shasum: e1b94bb9e51e45d7c7b130672aeac8aa8d2a6e59
+    npm notice integrity: sha512-qMJZz7S5X33WB[...]LFKlh7TJ6ckXw==
+    npm notice total files: 11
     npm notice
     worktreeguard-0.1.0.tgz
     ```
@@ -103,9 +117,9 @@ Checks run:
     > worktreeguard@0.1.0 test
     > node --test
     
-    ✔ help and version (0.743333ms)
-    ✔ lease, status json, dirty risk, and release refusal (326.182917ms)
-    ✔ missing worktree is reported from lock (295.315167ms)
+    ✔ help and version (1.371417ms)
+    ✔ lease, status json, dirty risk, and release refusal (562.061ms)
+    ✔ missing worktree is reported from lock (1219.387666ms)
     ℹ tests 3
     ℹ suites 0
     ℹ pass 3
@@ -113,7 +127,7 @@ Checks run:
     ℹ cancelled 0
     ℹ skipped 0
     ℹ todo 0
-    ℹ duration_ms 696.2245
+    ℹ duration_ms 1923.95425
     PASS: package script: test
     
     > worktreeguard@0.1.0 build
@@ -128,7 +142,7 @@ Checks run:
     
     Validation passed.
     ```
-    RESULT: 0 (2s)
+    RESULT: 0 (4s)
     
     ## ReleaseBox check
     ```
