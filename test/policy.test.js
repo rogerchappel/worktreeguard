@@ -52,18 +52,18 @@ test('many stale lanes triggers warning', () => {
 
 // redactSecrets
 test('redacts GitHub classic token', () => {
-  const out = redactSecrets('token=ghp_abcdefghij1234567890klmn');
+  const out = redactSecrets('token=ghp_abcdefghij1234567890klmnopqrstuv');
   assert.ok(out.includes('[REDACTED]'));
-  assert.ok(!out.includes('ghp_abcdefghij1234567890'));
+  assert.ok(!out.includes('ghp_abcdefghij1234567890klmnopqrstuv'));
 });
 
 test('redacts GitHub fine-grained token', () => {
-  const out = redactSecrets('PAT=github_pat_AAAAAABBBBBBCCCCCC');
+  const out = redactSecrets('PAT=github_pat_AAAAAABBBBBBCCCCCDDDDDEEEEEFFFFF');
   assert.ok(out.includes('[REDACTED]'));
 });
 
 test('redacts OpenAI key', () => {
-  const out = redactSecrets('key=sk-1234567890abcdef');
+  const out = redactSecrets('key=sk-1234567890abcdefghijklmnopqrs');
   assert.ok(out.includes('[REDACTED]'));
 });
 

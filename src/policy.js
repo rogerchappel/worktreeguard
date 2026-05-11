@@ -38,14 +38,14 @@ export function checkPolicy(repo, lanes, config) {
 
 export function redactSecrets(text) {
   const patterns = [
-    /(ghp_[A-Za-z0-9_]{20,})/g,
-    /(github_pat_[A-Za-z0-9_]{20,})/g,
-    /(sk-[A-Za-z0-9_]{20,})/g,
-    /(xox[baprs]-[A-Za-z0-9_\-]{10,})/g,
+    /ghp_[A-Za-z0-9_]{20,}/g,
+    /github_pat_[A-Za-z0-9_]{20,}/g,
+    /sk-[A-Za-z0-9_]{20,}/g,
+    /xox[baprs]-[A-Za-z0-9_\-]{10,}/g,
   ];
   let result = String(text);
   for (const re of patterns) {
-    result = result.replace(re, '$1[REDACTED]');
+    result = result.replace(re, '[REDACTED]');
   }
   return result;
 }

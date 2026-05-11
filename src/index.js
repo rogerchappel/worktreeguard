@@ -3,6 +3,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSy
 import { basename, dirname, join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { loadConfig, getLaneBranch } from './config.js';
+import { redactSecrets, enforceMaxLanes, isExpiringSoon } from './policy.js';
 
 export const VERSION = '0.1.0';
 const LOCK_DIR = '.worktreeguard/leases';
