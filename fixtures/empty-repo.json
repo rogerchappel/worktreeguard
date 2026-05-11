@@ -1,0 +1,7 @@
+{
+  "repo": "/fixtures/empty",
+  "generatedAt": "2026-05-12T10:00:00.000Z",
+  "summary": { "worktrees": 0, "dirty": 0, "stale": 0, "risks": 0 },
+  "risks": [],
+  "lanes": []
+}

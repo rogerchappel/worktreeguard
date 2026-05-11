@@ -1,0 +1,41 @@
+{
+  "repo": "/fixtures/dirty",
+  "generatedAt": "2026-05-12T10:00:00.000Z",
+  "summary": { "worktrees": 3, "dirty": 2, "stale": 1, "risks": 3 },
+  "risks": ["dirty", "stale", "duplicate-branch"],
+  "lanes": [
+    {
+      "path": "/tmp/worktrees/repo-hotfix",
+      "branch": "agent/hotfix",
+      "task": "hotfix",
+      "owner": "charlie",
+      "expiresAt": "2026-05-13T00:00:00.000Z",
+      "pr": null,
+      "dirty": true,
+      "dirtyFiles": [" M src/index.js", "?? debug.log"],
+      "risks": ["dirty"]
+    },
+    {
+      "path": "/tmp/worktrees/repo-refactor-api",
+      "branch": "agent/refactor-api",
+      "task": "refactor-api",
+      "owner": "diana",
+      "expiresAt": "2026-04-01T00:00:00.000Z",
+      "pr": null,
+      "dirty": true,
+      "dirtyFiles": [" M src/router.js"],
+      "risks": ["stale"]
+    },
+    {
+      "path": "/tmp/worktrees/repo-feature-x",
+      "branch": "refs/heads/shared-branch",
+      "task": "feature-x",
+      "owner": "eve",
+      "expiresAt": "2026-06-15T00:00:00.000Z",
+      "pr": null,
+      "dirty": false,
+      "dirtyFiles": [],
+      "risks": ["duplicate-branch"]
+    }
+  ]
+}

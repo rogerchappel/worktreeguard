@@ -1,0 +1,30 @@
+{
+  "repo": "/fixtures/healthy",
+  "generatedAt": "2026-05-12T10:00:00.000Z",
+  "summary": { "worktrees": 2, "dirty": 0, "stale": 0, "risks": 0 },
+  "risks": [],
+  "lanes": [
+    {
+      "path": "/tmp/worktrees/repo-fix-auth",
+      "branch": "agent/fix-auth",
+      "task": "fix-auth",
+      "owner": "alice",
+      "expiresAt": "2026-06-01T00:00:00.000Z",
+      "pr": null,
+      "dirty": false,
+      "dirtyFiles": [],
+      "risks": []
+    },
+    {
+      "path": "/tmp/worktrees/repo-add-logging",
+      "branch": "agent/add-logging",
+      "task": "add-logging",
+      "owner": "bob",
+      "expiresAt": "2026-05-20T00:00:00.000Z",
+      "pr": null,
+      "dirty": false,
+      "dirtyFiles": [],
+      "risks": []
+    }
+  ]
+}
