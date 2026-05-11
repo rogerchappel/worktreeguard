@@ -62,8 +62,8 @@ test('markdown format renders tables', () => {
   assert.match(out, /\| Task \| Branch \| Path \| Status \| Risks \|/);
   assert.match(out, /🟢 ok/);
   assert.match(out, /🔴 dirty/);
-  assert.match(out, /worktrees.*2/);
-  assert.match(out, /dirty.*1/);
+  assert.ok(out.includes('| Worktrees | 2 |'));
+  assert.ok(out.includes('| Dirty | 1 |'));
 });
 
 test('markdown format includes expiry warnings for soon-to-expire lanes', () => {
