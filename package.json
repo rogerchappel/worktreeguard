@@ -13,6 +13,9 @@
   "files": [
     "src",
     "README.md",
+    "LICENSE",
+    "SECURITY.md",
+    "CHANGELOG.md",
     "docs",
     "examples"
   ],
@@ -21,7 +24,8 @@
     "test": "node --test",
     "build": "npm run check",
     "smoke": "bash scripts/smoke.sh",
-    "release:check": "npm run check && npm test && npm run smoke && npm pack --dry-run"
+    "package:smoke": "npm pack --dry-run",
+    "release:check": "npm run check && npm test && npm run smoke && npm run package:smoke"
   },
   "keywords": [
     "git",
