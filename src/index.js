@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSy
 import { basename, dirname, join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { loadConfig, getLaneBranch } from './config.js';
+import { loadConfig, getLaneBranch, getWorktreePath } from './config.js';
 import { redactSecrets, enforceMaxLanes, isExpiringSoon } from './policy.js';
 
 export const VERSION = '0.1.0';
@@ -106,13 +106,17 @@ function formatReport(report, format = 'text') {
   return lines.join('\n').trimEnd();
 }
 function lease(repoInput, flags) {
-  const repo = repoTopLevel(resolve(repoInput)); const task = slugify(flags.task); const base = flags.base || defaultBranch(repo);
-  const branch = flags.branch || `agent/${task}`; const root = resolve(flags.root || join(dirname(repo), '.worktrees'));
-  const path = resolve(flags.path || join(root, `${basename(repo)}-${task}`));
+  const repo = repoTopLevel(resolve(repoInput)); const task = slugify(flags.task); const config = loadConfig(repo);
+  const base = flags.base || config.defaultBase || defaultBranch(repo);
+  const branch = flags.branch || getLaneBranch(task, config);
+  const configuredPath = getWorktreePath(repo, task, config);
+  const root = flags.root && resolve(flags.root);
+  const path = resolve(flags.path || (root ? join(root, `${basename(repo)}-${task}`) : configuredPath));
   if (existsSync(path)) throw new CliError(`refusing to lease into existing path: ${path}`);
+  enforceMaxLanes(repo, loadLocks(repo).length, config.maxActiveLanes);
   git(repo, ['fetch', '--all', '--prune'], { allowFailure: true });
   git(repo, ['worktree', 'add', '-b', branch, path, base]);
-  const lock = { task, owner: flags.owner || process.env.USER || 'unknown', repo, path, branch, base, createdAt: nowIso(), expiresAt: flags.expiresAt || addDays(Number(flags.days || 7)), pr: flags.pr || null };
+  const lock = { task, owner: flags.owner || process.env.USER || 'unknown', repo, path, branch, base, createdAt: nowIso(), expiresAt: flags.expiresAt || addDays(Number(flags.days ?? config.defaultDays)), pr: flags.pr || null };
   writeJson(join(repo, LOCK_DIR, `${task}.json`), lock); writeJson(join(path, WORKTREE_LOCK), lock);
   return lock;
 }
