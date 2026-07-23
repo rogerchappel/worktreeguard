@@ -39,7 +39,7 @@ bash scripts/validate.sh
 ## CLI reference
 
 ```sh
-worktreeguard lease <repo> --task <slug> [--base main] [--root <dir>] [--json]
+worktreeguard lease <repo> --task <slug> [--base <branch>] [--branch <branch>] [--root <dir>] [--days <count>] [--json]
 worktreeguard status [repo|--root <dir>] [--format text|json|markdown] [--json]
 worktreeguard doctor <repo> [--format text|json|markdown] [--json]
 worktreeguard release <repo> <task> [--pr <url>] [--force] [--json]
@@ -47,7 +47,21 @@ worktreeguard release <repo> <task> [--pr <url>] [--force] [--json]
 
 ### `lease`
 
-Creates a branch and worktree for a task. By default, lanes are created under a sibling `.worktrees` directory and branches use `agent/<task>`.
+Creates a branch and worktree for a task. By default, lanes are created under a sibling `.worktrees` directory, branches use `agent/<task>`, the base branch is `main`, and leases expire after 7 days.
+
+Repository defaults can be set in `<repo>/.worktreeguard/config.json`:
+
+```json
+{
+  "lanePrefix": "agent",
+  "worktreeRoot": ".worktrees",
+  "defaultBase": "main",
+  "defaultDays": 7,
+  "maxActiveLanes": 10
+}
+```
+
+`worktreeRoot` is resolved as a sibling of the repository. Lease options take precedence over configured defaults: `--branch` overrides `lanePrefix`, `--root` or `--path` overrides `worktreeRoot`, `--base` overrides `defaultBase`, and `--days` or `--expiresAt` overrides `defaultDays`. A lease is refused before creating a branch or worktree when the number of active lease records reaches `maxActiveLanes`.
 
 The command writes lock metadata in both places:
 
