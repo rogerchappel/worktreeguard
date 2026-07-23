@@ -131,7 +131,7 @@ function release(repoInput, taskOrPath, flags) {
   rmSync(join(repo, LOCK_DIR, `${lock.task}.json`), { force: true });
   return lock;
 }
-function help() { return `worktreeguard ${VERSION}\n\nUsage:\n  worktreeguard lease <repo> --task <slug> [--base main] [--root <dir>] [--json]\n  worktreeguard status [repo|--root <dir>] [--format text|json|markdown] [--json]\n  worktreeguard doctor <repo> [--format text|json|markdown] [--json]\n  worktreeguard release <repo> <task> [--pr <url>] [--force] [--json]\n`; }
+function help() { return `worktreeguard ${VERSION}\n\nUsage:\n  worktreeguard lease <repo> --task <slug> [--base <branch>] [--branch <branch>] [--root <dir>] [--days <count>] [--json]\n  worktreeguard status [repo|--root <dir>] [--format text|json|markdown] [--json]\n  worktreeguard doctor <repo> [--format text|json|markdown] [--json]\n  worktreeguard release <repo> <task> [--pr <url>] [--force] [--json]\n`; }
 export function run(argv = process.argv.slice(2)) {
   const { flags, positional } = parseArgs(argv); const cmd = positional.shift();
   if (!cmd || flags.help || cmd === 'help') return help(); if (flags.version || cmd === 'version') return VERSION;
