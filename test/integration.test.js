@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
@@ -16,6 +16,15 @@ function repo() {
   const d = mkdtempSync(join(tmpdir(), 'wtg-int-'));
   sh('git init -b main && git config user.email test@example.com && git config user.name Test && echo "# repo" > README.md && git add . && git commit -m "init"', d);
   return d;
+}
+
+function configure(r, config) {
+  mkdirSync(join(r, '.worktreeguard'), { recursive: true });
+  writeFileSync(join(r, '.worktreeguard', 'config.json'), `${JSON.stringify(config, null, 2)}\n`);
+}
+
+function lock(r, task) {
+  return JSON.parse(readFileSync(join(r, '.worktreeguard', 'leases', `${task}.json`), 'utf8'));
 }
 
 test('lease creates worktree on disk', () => {
@@ -43,6 +52,54 @@ test('lease with custom --days expiry', () => {
   assert.ok(lane.expiresAt, 'lane should have expiry');
   // 1 day expiry should be within 48 hours from now
   assert.ok(Date.parse(lane.expiresAt) - Date.now() < 48 * 3600000);
+});
+
+test('lease applies repository configuration', () => {
+  const r = repo();
+  sh('git branch stable', r);
+  configure(r, {
+    lanePrefix: 'custom',
+    worktreeRoot: 'custom-root',
+    defaultDays: 30,
+    defaultBase: 'stable',
+  });
+  const before = Date.now();
+  run(['lease', r, '--task', 'config-proof']);
+  const lease = lock(r, 'config-proof');
+  assert.equal(lease.branch, 'custom/config-proof');
+  assert.equal(lease.path, join(r, '..', 'custom-root', `${r.split('/').pop()}-config-proof`));
+  assert.equal(lease.base, 'stable');
+  assert.ok(Date.parse(lease.expiresAt) - before >= 30 * 86400000 - 5000);
+});
+
+test('explicit lease flags override repository configuration', () => {
+  const r = repo();
+  sh('git branch configured && git branch explicit', r);
+  configure(r, {
+    lanePrefix: 'custom',
+    worktreeRoot: 'configured-root',
+    defaultDays: 30,
+    defaultBase: 'configured',
+  });
+  const explicitRoot = join(r, '..', 'explicit-root');
+  const before = Date.now();
+  run(['lease', r, '--task', 'override-proof', '--branch', 'manual/override', '--root', explicitRoot, '--days', '2', '--base', 'explicit']);
+  const lease = lock(r, 'override-proof');
+  assert.equal(lease.branch, 'manual/override');
+  assert.equal(lease.path, join(explicitRoot, `${r.split('/').pop()}-override-proof`));
+  assert.equal(lease.base, 'explicit');
+  assert.ok(Date.parse(lease.expiresAt) - before >= 2 * 86400000 - 5000);
+});
+
+test('lease refuses creation at configured maxActiveLanes', () => {
+  const r = repo();
+  configure(r, { maxActiveLanes: 1 });
+  run(['lease', r, '--task', 'first']);
+  assert.throws(
+    () => run(['lease', r, '--task', 'second']),
+    /refusing to create lane: 1\/1 active/
+  );
+  assert.ok(!sh('git branch --list agent/second', r).trim());
 });
 
 test('lease prevents duplicate task', () => {
