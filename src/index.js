@@ -33,10 +33,34 @@ function parseArgs(argv) {
     if (a.startsWith('--')) {
       const [raw, inline] = a.slice(2).split('=', 2);
       if (['json','force','help','version'].includes(raw)) flags[raw] = true;
-      else flags[raw] = inline ?? argv[++i];
+      else {
+        const value = inline ?? argv[i + 1];
+        if (value === undefined || (inline === undefined && value.startsWith('--'))) {
+          throw new CliError(`--${raw} requires a value`);
+        }
+        flags[raw] = value;
+        if (inline === undefined) i++;
+      }
     } else positional.push(a);
   }
   return { flags, positional };
+}
+function validateLeaseOptions(flags, config) {
+  const allowed = new Set(['task', 'base', 'branch', 'root', 'path', 'days', 'expiresAt', 'owner', 'pr', 'json']);
+  const unknown = Object.keys(flags).find(name => !allowed.has(name));
+  if (unknown) throw new CliError(`unknown lease option: --${unknown}`);
+  if (flags.days !== undefined && flags.expiresAt !== undefined) {
+    throw new CliError('use either --days or --expiresAt, not both');
+  }
+  if (flags.expiresAt !== undefined) {
+    const timestamp = Date.parse(flags.expiresAt);
+    if (!Number.isFinite(timestamp)) throw new CliError('--expiresAt must be a parseable timestamp');
+    if (timestamp <= Date.now()) throw new CliError('--expiresAt must be a future timestamp');
+    return new Date(timestamp).toISOString();
+  }
+  const days = Number(flags.days ?? config.defaultDays);
+  if (!Number.isFinite(days) || days <= 0) throw new CliError('--days must be a finite positive number');
+  return addDays(days);
 }
 function parseWorktrees(repo) {
   const out = git(repo, ['worktree', 'list', '--porcelain']).stdout;
@@ -107,6 +131,7 @@ function formatReport(report, format = 'text') {
 }
 function lease(repoInput, flags) {
   const repo = repoTopLevel(resolve(repoInput)); const task = slugify(flags.task); const config = loadConfig(repo);
+  const expiresAt = validateLeaseOptions(flags, config);
   const base = flags.base || config.defaultBase || defaultBranch(repo);
   const branch = flags.branch || getLaneBranch(task, config);
   const configuredPath = getWorktreePath(repo, task, config);
@@ -116,7 +141,7 @@ function lease(repoInput, flags) {
   enforceMaxLanes(repo, loadLocks(repo).length, config.maxActiveLanes);
   git(repo, ['fetch', '--all', '--prune'], { allowFailure: true });
   git(repo, ['worktree', 'add', '-b', branch, path, base]);
-  const lock = { task, owner: flags.owner || process.env.USER || 'unknown', repo, path, branch, base, createdAt: nowIso(), expiresAt: flags.expiresAt || addDays(Number(flags.days ?? config.defaultDays)), pr: flags.pr || null };
+  const lock = { task, owner: flags.owner || process.env.USER || 'unknown', repo, path, branch, base, createdAt: nowIso(), expiresAt, pr: flags.pr || null };
   writeJson(join(repo, LOCK_DIR, `${task}.json`), lock); writeJson(join(path, WORKTREE_LOCK), lock);
   return lock;
 }
