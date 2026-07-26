@@ -27,6 +27,16 @@ function lock(r, task) {
   return JSON.parse(readFileSync(join(r, '.worktreeguard', 'leases', `${task}.json`), 'utf8'));
 }
 
+function assertNoLeaseSideEffects(r, task) {
+  assert.equal(sh(`git branch --list agent/${task}`, r).trim(), '');
+  assert.equal(
+    sh('git worktree list --porcelain', r).includes(`${r}-${task}`),
+    false,
+    'invalid lease must not create a worktree'
+  );
+  assert.equal(existsSync(join(r, '.worktreeguard', 'leases', `${task}.json`)), false);
+}
+
 test('lease creates worktree on disk', () => {
   const r = repo();
   run(['lease', r, '--task', 'test-worktree']);
@@ -53,6 +63,22 @@ test('lease with custom --days expiry', () => {
   // 1 day expiry should be within 48 hours from now
   assert.ok(Date.parse(lane.expiresAt) - Date.now() < 48 * 3600000);
 });
+
+for (const [label, args, error] of [
+  ['non-numeric --days', ['--days', 'nope'], /--days must be a finite positive number/],
+  ['zero --days', ['--days', '0'], /--days must be a finite positive number/],
+  ['past --expiresAt', ['--expiresAt', '2020-01-01T00:00:00.000Z'], /--expiresAt must be a future timestamp/],
+  ['malformed --expiresAt', ['--expiresAt', 'tomorrow-ish'], /--expiresAt must be a parseable timestamp/],
+  ['missing --days value', ['--days'], /--days requires a value/],
+  ['missing --expiresAt value', ['--expiresAt', '--json'], /--expiresAt requires a value/],
+  ['unknown lease option', ['--duration', '2'], /unknown lease option: --duration/],
+]) {
+  test(`lease rejects ${label} without side effects`, () => {
+    const r = repo();
+    assert.throws(() => run(['lease', r, '--task', `invalid-${label.replaceAll(' ', '-')}`, ...args]), error);
+    assertNoLeaseSideEffects(r, `invalid-${label.replaceAll(' ', '-')}`);
+  });
+}
 
 test('lease applies repository configuration', () => {
   const r = repo();
