@@ -28,15 +28,19 @@ function writeJson(path, value) { mkdirSync(dirname(path), { recursive: true });
 function redact(value) { return String(value).replace(/(ghp_|github_pat_|sk-|xox[baprs]-)[A-Za-z0-9_\-]+/g, '$1[REDACTED]'); }
 function parseArgs(argv) {
   const flags = {}; const positional = [];
+  const booleanOptions = new Set(['json', 'force', 'help', 'version']);
+  const valuedOptions = new Set(['task', 'base', 'branch', 'root', 'path', 'days', 'expiresAt', 'owner', 'pr', 'format']);
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a.startsWith('--')) {
       const [raw, inline] = a.slice(2).split('=', 2);
-      if (['json','force','help','version'].includes(raw)) flags[raw] = true;
+      if (booleanOptions.has(raw)) flags[raw] = true;
       else {
         const value = inline ?? argv[i + 1];
         if (value === undefined || (inline === undefined && value.startsWith('--'))) {
-          throw new CliError(`--${raw} requires a value`);
+          if (valuedOptions.has(raw)) throw new CliError(`--${raw} requires a value`);
+          flags[raw] = true;
+          continue;
         }
         flags[raw] = value;
         if (inline === undefined) i++;
@@ -61,6 +65,25 @@ function validateLeaseOptions(flags, config) {
   const days = Number(flags.days ?? config.defaultDays);
   if (!Number.isFinite(days) || days <= 0) throw new CliError('--days must be a finite positive number');
   return addDays(days);
+}
+function validateCommandArguments(cmd, flags, positional) {
+  const specs = {
+    status: { options: ['root', 'format', 'json'], min: 0, max: 1, usage: 'status [repo|--root <dir>]' },
+    doctor: { options: ['format', 'json'], min: 1, max: 1, usage: 'doctor <repo>' },
+    release: { options: ['pr', 'force', 'json'], min: 2, max: 2, usage: 'release <repo> <task>' }
+  };
+  const spec = specs[cmd];
+  if (!spec) return;
+  const unknown = Object.keys(flags).find(name => !spec.options.includes(name));
+  if (unknown) throw new CliError(`unknown ${cmd} option: --${unknown}`);
+  if (positional.length < spec.min) throw new CliError(`${cmd} requires ${spec.min === 1 ? 'a repository' : '<repo> and <task>'}; usage: worktreeguard ${spec.usage}`);
+  if (positional.length > spec.max) throw new CliError(`too many arguments for ${cmd}; usage: worktreeguard ${spec.usage}`);
+  if (cmd === 'status' && flags.root !== undefined && positional.length) {
+    throw new CliError('status accepts either a repository or --root, not both');
+  }
+  if (flags.format !== undefined && !['text', 'json', 'markdown'].includes(flags.format)) {
+    throw new CliError('--format must be one of: text, json, markdown');
+  }
 }
 function parseWorktrees(repo) {
   const out = git(repo, ['worktree', 'list', '--porcelain']).stdout;
@@ -160,6 +183,7 @@ function help() { return `worktreeguard ${VERSION}\n\nUsage:\n  worktreeguard le
 export function run(argv = process.argv.slice(2)) {
   const { flags, positional } = parseArgs(argv); const cmd = positional.shift();
   if (!cmd || flags.help || cmd === 'help') return help(); if (flags.version || cmd === 'version') return VERSION;
+  validateCommandArguments(cmd, flags, positional);
   const format = flags.json ? 'json' : (flags.format || 'text');
   if (cmd === 'lease') return formatReport({ repos: [{ ...inspectRepo(lease(positional[0] || '.', flags).repo), action: 'leased' }] }, format);
   if (cmd === 'status') { const root = flags.root || positional[0] || '.'; const repos = findRepos(root).map(inspectRepo); return formatReport(repos.length === 1 ? repos[0] : { generatedAt: nowIso(), repos }, format); }
