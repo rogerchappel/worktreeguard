@@ -55,7 +55,7 @@ jobs:
           cat release-notes-preview.md
 
       - name: Upload release notes preview
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: release-notes-preview
           path: release-notes-preview.md
