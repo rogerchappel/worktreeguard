@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync, rmSync, realpathSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -191,6 +191,6 @@ export function run(argv = process.argv.slice(2)) {
   if (cmd === 'release') { const lock = release(positional[0] || '.', positional[1], flags); return format === 'json' ? JSON.stringify({ released: lock }, null, 2) : `released ${lock.task} (${lock.path})`; }
   throw new CliError(`unknown command: ${cmd}`);
 }
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try { console.log(run()); } catch (err) { console.error(redact(err.message || String(err))); process.exit(err.exitCode || 1); }
 }

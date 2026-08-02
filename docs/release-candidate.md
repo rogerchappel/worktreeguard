@@ -1,5 +1,10 @@
 # Release candidate readiness
 
+Release artifacts are retained for review, but installation from releases,
+publishing to the npm registry, and Homebrew remain disabled pending review.
+The release gate checks the documented source installation with
+`npm run install-docs:smoke`.
+
 Generated: 2026-05-05T21:27:11Z
 Branch: `release-candidate/readiness`
 Base: `main`

@@ -23,10 +23,16 @@ npm run smoke
 
 ## Install
 
+Registry installation is currently unavailable. Install from a source checkout:
+
 ```sh
-npm install -g worktreeguard
+git clone https://github.com/rogerchappel/worktreeguard.git
+cd worktreeguard
+npm install -g .
 worktreeguard --help
 ```
+
+Publishing to the npm registry is disabled, so `npm install -g worktreeguard` is not available. The v0.1.0 GitHub release artifact also has a broken global executable entry point and should not be used for installation. To verify the documented source install and command in a temporary prefix, run `npm run install-docs:smoke` from a clone of this repository.
 
 For local development from this repository:
 
@@ -129,6 +135,7 @@ See [examples/agent-handoff.md](examples/agent-handoff.md) for a minimal orchest
 ```sh
 npm test
 npm run smoke
+npm run install-docs:smoke
 bash scripts/validate.sh
 ```
 
@@ -155,4 +162,5 @@ Run the same local checks used for release readiness before opening changes:
 - `npm run build`
 - `npm run smoke`
 - `npm run package:smoke`
+- `npm run install-docs:smoke`
 - `npm run release:check`

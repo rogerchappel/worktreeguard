@@ -56,4 +56,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "${GITHUB_REF_NAME}" --notes-file RELEASE_NOTES.md *.tgz
 
-# npm publishing and Homebrew updates are intentionally disabled until reviewed.
+# Release artifacts are retained for review, but installation from releases,
+# npm registry publishing, and Homebrew updates are disabled until reviewed.
