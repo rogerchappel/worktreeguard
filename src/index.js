@@ -26,6 +26,13 @@ function addDays(days) { return new Date(Date.now() + days * 86400000).toISOStri
 function readJson(path, fallback) { try { return JSON.parse(readFileSync(path, 'utf8')); } catch { return fallback; } }
 function writeJson(path, value) { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`); }
 function redact(value) { return String(value).replace(/(ghp_|github_pat_|sk-|xox[baprs]-)[A-Za-z0-9_\-]+/g, '$1[REDACTED]'); }
+function canonicalPath(path) {
+  const absolute = resolve(path);
+  if (existsSync(absolute)) return realpathSync.native(absolute);
+  const parent = dirname(absolute);
+  if (parent === absolute) return absolute;
+  return join(canonicalPath(parent), basename(absolute));
+}
 function parseArgs(argv) {
   const flags = {}; const positional = [];
   const booleanOptions = new Set(['json', 'force', 'help', 'version']);
@@ -68,6 +75,7 @@ function validateLeaseOptions(flags, config) {
 }
 function validateCommandArguments(cmd, flags, positional) {
   const specs = {
+    lease: { options: ['task', 'base', 'branch', 'root', 'path', 'days', 'expiresAt', 'owner', 'pr', 'json'], min: 1, max: 1, usage: 'lease <repo> --task <slug>' },
     status: { options: ['root', 'format', 'json'], min: 0, max: 1, usage: 'status [repo|--root <dir>]' },
     doctor: { options: ['format', 'json'], min: 1, max: 1, usage: 'doctor <repo>' },
     release: { options: ['pr', 'force', 'json'], min: 2, max: 2, usage: 'release <repo> <task>' }
@@ -110,14 +118,14 @@ function loadLocks(repo) {
   return readdirSync(dir).filter(f => f.endsWith('.json')).map(f => readJson(join(dir, f), null)).filter(Boolean);
 }
 function inspectRepo(repoInput) {
-  const repo = repoTopLevel(resolve(repoInput));
+  const repo = canonicalPath(repoTopLevel(resolve(repoInput)));
   const worktrees = parseWorktrees(repo);
   const locks = loadLocks(repo);
-  const lockByPath = new Map(locks.map(l => [resolve(l.path), l]));
+  const lockByPath = new Map(locks.map(l => [canonicalPath(l.path), l]));
   const branchCounts = new Map();
   for (const wt of worktrees) if (wt.branch) branchCounts.set(wt.branch, (branchCounts.get(wt.branch) || 0) + 1);
   const lanes = worktrees.map(wt => {
-    const p = resolve(wt.path); const d = dirty(p); const lock = lockByPath.get(p) || readJson(join(p, WORKTREE_LOCK), null);
+    const p = canonicalPath(wt.path); const d = dirty(p); const lock = lockByPath.get(p) || readJson(join(p, WORKTREE_LOCK), null);
     const risks = [];
     if (!existsSync(p)) risks.push('missing-worktree');
     if (d) risks.push('dirty');
@@ -127,7 +135,10 @@ function inspectRepo(repoInput) {
     return { path: p, branch: wt.branch || null, head: wt.head || null, task: lock?.task || null, owner: lock?.owner || null, expiresAt: lock?.expiresAt || null, pr: lock?.pr || null, dirty: Boolean(d), dirtyFiles: d ? d.split('\n').map(redact) : [], risks };
   });
   const paths = new Set(lanes.map(l => l.path));
-  for (const lock of locks) if (!existsSync(lock.path) || !paths.has(resolve(lock.path))) lanes.push({ path: resolve(lock.path), branch: lock.branch || null, task: lock.task, owner: lock.owner || null, expiresAt: lock.expiresAt || null, pr: lock.pr || null, dirty: false, dirtyFiles: [], risks: ['missing-worktree'] });
+  for (const lock of locks) {
+    const path = canonicalPath(lock.path);
+    if (!existsSync(path) || !paths.has(path)) lanes.push({ path, branch: lock.branch || null, task: lock.task, owner: lock.owner || null, expiresAt: lock.expiresAt || null, pr: lock.pr || null, dirty: false, dirtyFiles: [], risks: ['missing-worktree'] });
+  }
   const risks = [...new Set(lanes.flatMap(l => l.risks))];
   return { repo, generatedAt: nowIso(), summary: { worktrees: lanes.length, dirty: lanes.filter(l => l.dirty).length, risks: risks.length }, risks, lanes };
 }
@@ -153,13 +164,13 @@ function formatReport(report, format = 'text') {
   return lines.join('\n').trimEnd();
 }
 function lease(repoInput, flags) {
-  const repo = repoTopLevel(resolve(repoInput)); const task = slugify(flags.task); const config = loadConfig(repo);
+  const repo = canonicalPath(repoTopLevel(resolve(repoInput))); const task = slugify(flags.task); const config = loadConfig(repo);
   const expiresAt = validateLeaseOptions(flags, config);
   const base = flags.base || config.defaultBase || defaultBranch(repo);
   const branch = flags.branch || getLaneBranch(task, config);
   const configuredPath = getWorktreePath(repo, task, config);
   const root = flags.root && resolve(flags.root);
-  const path = resolve(flags.path || (root ? join(root, `${basename(repo)}-${task}`) : configuredPath));
+  const path = canonicalPath(flags.path || (root ? join(root, `${basename(repo)}-${task}`) : configuredPath));
   if (existsSync(path)) throw new CliError(`refusing to lease into existing path: ${path}`);
   enforceMaxLanes(repo, loadLocks(repo).length, config.maxActiveLanes);
   git(repo, ['fetch', '--all', '--prune'], { allowFailure: true });
