@@ -34,6 +34,12 @@ test('release validates arguments before repository access', () => {
   assert.throws(() => run(['release', '/missing', 'task', '--bogus']), /unknown release option: --bogus/);
 });
 
+test('lease validates arguments before repository access', () => {
+  assert.throws(() => run(['lease', '--task', 'missing-repo']), /lease requires a repository/);
+  assert.throws(() => run(['lease', '/missing', 'extra', '--task', 'too-many']), /too many arguments for lease/);
+  assert.throws(() => run(['lease', '/missing', '--task', 'unknown', '--bogus']), /unknown lease option: --bogus/);
+});
+
 for (const command of ['status', 'doctor']) {
   test(`${command} rejects unknown options before repository access`, () => {
     assert.throws(() => run([command, '/missing', '--fomrat', 'json']), new RegExp(`unknown ${command} option: --fomrat`));

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, existsSync, realpathSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
@@ -43,6 +43,23 @@ test('lease creates worktree on disk', () => {
   // Verify worktree was created
   const wtList = sh('git worktree list', r);
   assert.ok(wtList.includes('agent/test-worktree'));
+});
+
+test('symlinked worktree roots use one canonical lane identity', () => {
+  const r = repo();
+  const realRoot = mkdtempSync(join(tmpdir(), 'wtg-real-root-'));
+  const aliasParent = mkdtempSync(join(tmpdir(), 'wtg-alias-parent-'));
+  const aliasRoot = join(aliasParent, 'root');
+  symlinkSync(realRoot, aliasRoot);
+
+  run(['lease', r, '--task', 'alias-proof', '--root', aliasRoot]);
+
+  const report = JSON.parse(run(['status', r, '--json']));
+  const lanes = report.lanes.filter(lane => lane.task === 'alias-proof');
+  assert.equal(lanes.length, 1);
+  assert.equal(lanes[0].path, join(realpathSync.native(realRoot), `${r.split('/').pop()}-alias-proof`));
+  assert.equal(lanes[0].risks.includes('missing-worktree'), false);
+  assert.equal(lock(r, 'alias-proof').path, lanes[0].path);
 });
 
 test('lease with custom base branch', () => {
