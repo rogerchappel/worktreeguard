@@ -115,7 +115,25 @@ function upstreamMissing(path, branch) {
 function loadLocks(repo) {
   const dir = join(repo, LOCK_DIR);
   if (!existsSync(dir)) return [];
-  return readdirSync(dir).filter(f => f.endsWith('.json')).map(f => readJson(join(dir, f), null)).filter(Boolean);
+  return readdirSync(dir).filter(f => f.endsWith('.json')).map(file => {
+    const path = join(dir, file);
+    let contents;
+    try {
+      contents = readFileSync(path, 'utf8');
+    } catch (error) {
+      throw new CliError(`unable to read lease file ${path}: ${error.message}`);
+    }
+    let lock;
+    try {
+      lock = JSON.parse(contents);
+    } catch (error) {
+      throw new CliError(`invalid JSON in lease file ${path}: ${error.message}`);
+    }
+    if (!lock || typeof lock !== 'object' || Array.isArray(lock) || typeof lock.task !== 'string' || !lock.task || typeof lock.path !== 'string' || !lock.path) {
+      throw new CliError(`invalid lease file ${path}: expected an object with non-empty task and path strings`);
+    }
+    return lock;
+  });
 }
 function inspectRepo(repoInput) {
   const repo = canonicalPath(repoTopLevel(resolve(repoInput)));
