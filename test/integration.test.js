@@ -27,6 +27,13 @@ function lock(r, task) {
   return JSON.parse(readFileSync(join(r, '.worktreeguard', 'leases', `${task}.json`), 'utf8'));
 }
 
+function writeMalformedLease(r, name = 'corrupt') {
+  const leasePath = join(r, '.worktreeguard', 'leases', `${name}.json`);
+  mkdirSync(join(r, '.worktreeguard', 'leases'), { recursive: true });
+  writeFileSync(leasePath, '{broken json\n');
+  return leasePath;
+}
+
 function assertNoLeaseSideEffects(r, task) {
   assert.equal(sh(`git branch --list agent/${task}`, r).trim(), '');
   assert.equal(
@@ -143,6 +150,42 @@ test('lease refuses creation at configured maxActiveLanes', () => {
     /refusing to create lane: 1\/1 active/
   );
   assert.ok(!sh('git branch --list agent/second', r).trim());
+});
+
+test('status and doctor surface malformed lease files with their path', () => {
+  const r = repo();
+  const leasePath = writeMalformedLease(r);
+
+  for (const command of ['status', 'doctor']) {
+    assert.throws(
+      () => run([command, r, '--json']),
+      error => error.message.includes(leasePath) && /lease|JSON/i.test(error.message),
+      `${command} should identify the malformed lease file`
+    );
+  }
+});
+
+test('status surfaces unreadable lease entries with their path', () => {
+  const r = repo();
+  const leasePath = join(r, '.worktreeguard', 'leases', 'unreadable.json');
+  mkdirSync(leasePath, { recursive: true });
+
+  assert.throws(
+    () => run(['status', r, '--json']),
+    error => error.message.includes(leasePath) && /read lease file/i.test(error.message)
+  );
+});
+
+test('malformed lease files refuse a new lane without side effects', () => {
+  const r = repo();
+  configure(r, { maxActiveLanes: 1 });
+  const leasePath = writeMalformedLease(r, 'existing');
+
+  assert.throws(
+    () => run(['lease', r, '--task', 'second']),
+    error => error.message.includes(leasePath) && /lease|JSON/i.test(error.message)
+  );
+  assertNoLeaseSideEffects(r, 'second');
 });
 
 test('lease prevents duplicate task', () => {
