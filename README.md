@@ -69,6 +69,8 @@ Repository defaults can be set in `<repo>/.worktreeguard/config.json`:
 
 `worktreeRoot` is resolved as a sibling of the repository. Lease options take precedence over configured defaults: `--branch` overrides `lanePrefix`, `--root` or `--path` overrides `worktreeRoot`, `--base` overrides `defaultBase`, and `--days` or `--expiresAt` overrides `defaultDays`. A lease is refused before creating a branch or worktree when the number of active lease records reaches `maxActiveLanes`.
 
+Configuration is validated before any fetch or lease mutation. `lanePrefix` and `defaultBase` must be non-empty, safe Git ref values. `worktreeRoot`, `lockDir`, and `releaseDir` must be non-empty relative paths without `..` traversal. `defaultDays` must be a finite number greater than zero; `maxActiveLanes` must be a positive integer; and `warnBeforeExpiryHours` must be a finite non-negative number. `redactPatterns` must be an array of non-empty strings. Unknown fields and non-object JSON are rejected with a field-specific error.
+
 `lease` requires exactly one `<repo>` argument. `--days` accepts a finite number greater than zero, including fractional days. `--expiresAt` accepts a JavaScript-parseable timestamp that is in the future; ISO 8601 timestamps such as `2026-08-01T12:00:00Z` are recommended. Supply only one expiry option. Invalid, missing, or unknown lease options and positional arguments are rejected before a fetch, branch, worktree, or lease record is created.
 
 Worktree and lock paths are reported using their canonical filesystem identity. Path aliases that resolve to the same location, such as `/tmp` and `/private/tmp` on macOS, therefore appear as one lane.
