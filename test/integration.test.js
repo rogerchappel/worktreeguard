@@ -152,6 +152,19 @@ test('lease refuses creation at configured maxActiveLanes', () => {
   assert.ok(!sh('git branch --list agent/second', r).trim());
 });
 
+for (const [field, value] of [['defaultDays', 'nonsense'], ['maxActiveLanes', 'nonsense']]) {
+  test(`invalid configured ${field} refuses a lease without side effects`, () => {
+    const r = repo();
+    configure(r, { [field]: value });
+    const task = `invalid-config-${field.toLowerCase()}`;
+    assert.throws(
+      () => run(['lease', r, '--task', task]),
+      new RegExp(`config\\.json field "${field}"`)
+    );
+    assertNoLeaseSideEffects(r, task);
+  });
+}
+
 test('status and doctor surface malformed lease files with their path', () => {
   const r = repo();
   const leasePath = writeMalformedLease(r);
