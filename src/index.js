@@ -4,10 +4,10 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { loadConfig, getLaneBranch, getWorktreePath } from './config.js';
-import { redactSecrets, enforceMaxLanes, isExpiringSoon } from './policy.js';
+import { redactSecrets, enforceMaxLanes } from './policy.js';
+import { formatReport } from './formatter.js';
 
 export const VERSION = '0.1.0';
-const LOCK_DIR = '.worktreeguard/leases';
 const WORKTREE_LOCK = '.worktreeguard/lease.json';
 
 class CliError extends Error { constructor(message, code = 1) { super(message); this.exitCode = code; } }
@@ -25,7 +25,6 @@ function nowIso() { return new Date().toISOString(); }
 function addDays(days) { return new Date(Date.now() + days * 86400000).toISOString(); }
 function readJson(path, fallback) { try { return JSON.parse(readFileSync(path, 'utf8')); } catch { return fallback; } }
 function writeJson(path, value) { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`); }
-function redact(value) { return String(value).replace(/(ghp_|github_pat_|sk-|xox[baprs]-)[A-Za-z0-9_\-]+/g, '$1[REDACTED]'); }
 function canonicalPath(path) {
   const absolute = resolve(path);
   if (existsSync(absolute)) return realpathSync.native(absolute);
@@ -112,8 +111,8 @@ function upstreamMissing(path, branch) {
   if (!branch) return false;
   return git(path, ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}'], { allowFailure: true }).status !== 0;
 }
-function loadLocks(repo) {
-  const dir = join(repo, LOCK_DIR);
+function loadLocks(repo, config = loadConfig(repo)) {
+  const dir = join(repo, config.lockDir);
   if (!existsSync(dir)) return [];
   return readdirSync(dir).filter(f => f.endsWith('.json')).map(file => {
     const path = join(dir, file);
@@ -137,8 +136,9 @@ function loadLocks(repo) {
 }
 function inspectRepo(repoInput) {
   const repo = canonicalPath(repoTopLevel(resolve(repoInput)));
+  const config = loadConfig(repo);
   const worktrees = parseWorktrees(repo);
-  const locks = loadLocks(repo);
+  const locks = loadLocks(repo, config);
   const lockByPath = new Map(locks.map(l => [canonicalPath(l.path), l]));
   const branchCounts = new Map();
   for (const wt of worktrees) if (wt.branch) branchCounts.set(wt.branch, (branchCounts.get(wt.branch) || 0) + 1);
@@ -150,7 +150,7 @@ function inspectRepo(repoInput) {
     if (lock?.expiresAt && Date.parse(lock.expiresAt) < Date.now()) risks.push('stale');
     if (wt.branch && branchCounts.get(wt.branch) > 1) risks.push('duplicate-branch');
     if (upstreamMissing(p, wt.branch)) risks.push('missing-upstream');
-    return { path: p, branch: wt.branch || null, head: wt.head || null, task: lock?.task || null, owner: lock?.owner || null, expiresAt: lock?.expiresAt || null, pr: lock?.pr || null, dirty: Boolean(d), dirtyFiles: d ? d.split('\n').map(redact) : [], risks };
+    return { path: p, branch: wt.branch || null, head: wt.head || null, task: lock?.task || null, owner: lock?.owner || null, expiresAt: lock?.expiresAt || null, pr: lock?.pr || null, dirty: Boolean(d), dirtyFiles: d ? d.split('\n').map(value => redactSecrets(value, config.redactPatterns)) : [], risks };
   });
   const paths = new Set(lanes.map(l => l.path));
   for (const lock of locks) {
@@ -158,7 +158,11 @@ function inspectRepo(repoInput) {
     if (!existsSync(path) || !paths.has(path)) lanes.push({ path, branch: lock.branch || null, task: lock.task, owner: lock.owner || null, expiresAt: lock.expiresAt || null, pr: lock.pr || null, dirty: false, dirtyFiles: [], risks: ['missing-worktree'] });
   }
   const risks = [...new Set(lanes.flatMap(l => l.risks))];
-  return { repo, generatedAt: nowIso(), summary: { worktrees: lanes.length, dirty: lanes.filter(l => l.dirty).length, risks: risks.length }, risks, lanes };
+  const report = { repo, generatedAt: nowIso(), summary: { worktrees: lanes.length, dirty: lanes.filter(l => l.dirty).length, risks: risks.length }, risks, lanes };
+  Object.defineProperty(report, 'reporting', {
+    value: { redactPatterns: config.redactPatterns, warnBeforeExpiryHours: config.warnBeforeExpiryHours },
+  });
+  return report;
 }
 function findRepos(root) {
   const r = resolve(root);
@@ -166,20 +170,6 @@ function findRepos(root) {
   const repos = [];
   for (const name of readdirSync(r)) { const p = join(r, name); if (statSync(p).isDirectory() && isGitRepo(p)) repos.push(repoTopLevel(p)); }
   return [...new Set(repos)];
-}
-function formatReport(report, format = 'text') {
-  if (format === 'json') return JSON.stringify(report, null, 2);
-  const reports = report.repos || [report];
-  const md = format === 'markdown';
-  const lines = [];
-  if (md) lines.push('# WorktreeGuard Report', ''); else lines.push('WorktreeGuard report');
-  for (const r of reports) {
-    lines.push(`${md ? '## ' : ''}${r.repo}`);
-    lines.push(`worktrees=${r.summary.worktrees} dirty=${r.summary.dirty} risks=${r.risks.length ? r.risks.join(',') : 'none'}`);
-    for (const lane of r.lanes) lines.push(`- ${lane.task || basename(lane.path)} [${lane.branch || 'detached'}] ${lane.risks.length ? lane.risks.join(',') : 'ok'} ${lane.path}`);
-    lines.push('');
-  }
-  return lines.join('\n').trimEnd();
 }
 function lease(repoInput, flags) {
   const repo = canonicalPath(repoTopLevel(resolve(repoInput))); const task = slugify(flags.task); const config = loadConfig(repo);
@@ -190,22 +180,22 @@ function lease(repoInput, flags) {
   const root = flags.root && resolve(flags.root);
   const path = canonicalPath(flags.path || (root ? join(root, `${basename(repo)}-${task}`) : configuredPath));
   if (existsSync(path)) throw new CliError(`refusing to lease into existing path: ${path}`);
-  enforceMaxLanes(repo, loadLocks(repo).length, config.maxActiveLanes);
+  enforceMaxLanes(repo, loadLocks(repo, config).length, config.maxActiveLanes);
   git(repo, ['fetch', '--all', '--prune'], { allowFailure: true });
   git(repo, ['worktree', 'add', '-b', branch, path, base]);
   const lock = { task, owner: flags.owner || process.env.USER || 'unknown', repo, path, branch, base, createdAt: nowIso(), expiresAt, pr: flags.pr || null };
-  writeJson(join(repo, LOCK_DIR, `${task}.json`), lock); writeJson(join(path, WORKTREE_LOCK), lock);
+  writeJson(join(repo, config.lockDir, `${task}.json`), lock); writeJson(join(path, WORKTREE_LOCK), lock);
   return lock;
 }
 function release(repoInput, taskOrPath, flags) {
-  const repo = repoTopLevel(resolve(repoInput)); const locks = loadLocks(repo); const key = taskOrPath && slugify(taskOrPath);
+  const repo = repoTopLevel(resolve(repoInput)); const config = loadConfig(repo); const locks = loadLocks(repo, config); const key = taskOrPath && slugify(taskOrPath);
   const lock = locks.find(l => l.task === key || resolve(l.path) === resolve(taskOrPath || ''));
   if (!lock) throw new CliError(`no lease found for ${taskOrPath}`);
   if (existsSync(lock.path) && dirty(lock.path) && !flags.force) throw new CliError('refusing to release dirty worktree without --force');
   lock.releasedAt = nowIso(); if (flags.pr) lock.pr = flags.pr;
-  const archived = join(repo, '.worktreeguard/releases', `${lock.task}.json`); writeJson(archived, lock);
+  const archived = join(repo, config.releaseDir, `${lock.task}.json`); writeJson(archived, lock);
   if (existsSync(lock.path)) git(repo, ['worktree', 'remove', flags.force ? '--force' : '', lock.path].filter(Boolean));
-  rmSync(join(repo, LOCK_DIR, `${lock.task}.json`), { force: true });
+  rmSync(join(repo, config.lockDir, `${lock.task}.json`), { force: true });
   return lock;
 }
 function help() { return `worktreeguard ${VERSION}\n\nUsage:\n  worktreeguard lease <repo> --task <slug> [--base <branch>] [--branch <branch>] [--root <dir>] [--days <count> | --expiresAt <timestamp>] [--json]\n  worktreeguard status [repo|--root <dir>] [--format text|json|markdown] [--json]\n  worktreeguard doctor <repo> [--format text|json|markdown] [--json]\n  worktreeguard release <repo> <task> [--pr <url>] [--force] [--json]\n`; }

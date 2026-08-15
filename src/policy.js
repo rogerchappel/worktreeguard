@@ -36,18 +36,24 @@ export function checkPolicy(repo, lanes, config) {
   return { ok: violations.length === 0, violations, counts };
 }
 
-export function redactSecrets(text) {
-  const patterns = [
-    /ghp_[A-Za-z0-9_]{20,}/g,
-    /github_pat_[A-Za-z0-9_]{20,}/g,
-    /sk-[A-Za-z0-9_]{20,}/g,
-    /xox[baprs]-[A-Za-z0-9_\-]{10,}/g,
-  ];
+export function redactSecrets(text, configuredPatterns) {
+  const patterns = configuredPatterns
+    ? configuredPatterns.map(pattern => new RegExp(`${escapeRegExp(pattern)}[A-Za-z0-9_-]*`, 'g'))
+    : [
+        /ghp_[A-Za-z0-9_]{20,}/g,
+        /github_pat_[A-Za-z0-9_]{20,}/g,
+        /sk-[A-Za-z0-9_]{20,}/g,
+        /xox[baprs]-[A-Za-z0-9_\-]{10,}/g,
+      ];
   let result = String(text);
   for (const re of patterns) {
     result = result.replace(re, '[REDACTED]');
   }
   return result;
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 export function isExpiringSoon(expiresAt, warnHours = 24) {

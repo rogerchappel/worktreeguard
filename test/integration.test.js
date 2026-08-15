@@ -259,7 +259,7 @@ test('CLI output honors configured redaction patterns', () => {
   const lane = JSON.parse(run(['status', r, '--json'])).lanes.find(item => item.task === 'redaction');
   writeFileSync(join(lane.path, 'private-sensitive-value.txt'), 'dirty\n');
 
-  const output = run(['doctor', r, '--format', 'markdown']);
+  const output = run(['doctor', r, '--json']);
   assert.doesNotMatch(output, /private-sensitive-value/);
   assert.match(output, /\[REDACTED\]/);
 });
