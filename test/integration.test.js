@@ -27,6 +27,10 @@ function lock(r, task) {
   return JSON.parse(readFileSync(join(r, '.worktreeguard', 'leases', `${task}.json`), 'utf8'));
 }
 
+function configuredLock(r, dir, task) {
+  return JSON.parse(readFileSync(join(r, dir, `${task}.json`), 'utf8'));
+}
+
 function writeMalformedLease(r, name = 'corrupt') {
   const leasePath = join(r, '.worktreeguard', 'leases', `${name}.json`);
   mkdirSync(join(r, '.worktreeguard', 'leases'), { recursive: true });
@@ -120,6 +124,17 @@ test('lease applies repository configuration', () => {
   assert.equal(lease.path, join(r, '..', 'custom-root', `${r.split('/').pop()}-config-proof`));
   assert.equal(lease.base, 'stable');
   assert.ok(Date.parse(lease.expiresAt) - before >= 30 * 86400000 - 5000);
+});
+
+test('CLI stores and reads leases from configured lockDir', () => {
+  const r = repo();
+  configure(r, { lockDir: 'custom/leases' });
+  run(['lease', r, '--task', 'custom-lock']);
+
+  assert.equal(existsSync(join(r, '.worktreeguard', 'leases', 'custom-lock.json')), false);
+  assert.equal(configuredLock(r, 'custom/leases', 'custom-lock').task, 'custom-lock');
+  const status = JSON.parse(run(['status', r, '--json']));
+  assert.ok(status.lanes.some(lane => lane.task === 'custom-lock'));
 });
 
 test('explicit lease flags override repository configuration', () => {
@@ -224,6 +239,29 @@ test('status --format markdown', () => {
   const out = run(['status', r, '--format', 'markdown']);
   assert.match(out, /WorktreeGuard Report/);
   assert.match(out, /md-task/);
+  assert.match(out, /\| Task \| Branch \| Path \| Status \| Risks \|/);
+});
+
+test('CLI markdown honors configured expiry warning threshold', () => {
+  const r = repo();
+  configure(r, { warnBeforeExpiryHours: 48 });
+  run(['lease', r, '--task', 'expiring', '--days', '1']);
+
+  const out = run(['doctor', r, '--format', 'markdown']);
+  assert.match(out, /Expiring Soon/);
+  assert.match(out, /\*\*expiring\*\*/);
+});
+
+test('CLI output honors configured redaction patterns', () => {
+  const r = repo();
+  configure(r, { redactPatterns: ['private-'] });
+  run(['lease', r, '--task', 'redaction']);
+  const lane = JSON.parse(run(['status', r, '--json'])).lanes.find(item => item.task === 'redaction');
+  writeFileSync(join(lane.path, 'private-sensitive-value.txt'), 'dirty\n');
+
+  const output = run(['doctor', r, '--json']);
+  assert.doesNotMatch(output, /private-sensitive-value/);
+  assert.match(output, /\[REDACTED\]/);
 });
 
 test('doctor detects stale lease', async () => {
@@ -252,6 +290,18 @@ test('release archives lease to .worktreeguard/releases', () => {
   assert.ok(existsSync(releaseFile), 'release archive should exist');
   const archived = JSON.parse(readFileSync(releaseFile, 'utf8'));
   assert.ok(archived.releasedAt, 'archived lease should have releasedAt timestamp');
+});
+
+test('CLI archives releases in configured releaseDir', () => {
+  const r = repo();
+  configure(r, { lockDir: 'custom/leases', releaseDir: 'custom/releases' });
+  run(['lease', r, '--task', 'custom-release']);
+  run(['release', r, 'custom-release', '--force']);
+
+  assert.equal(existsSync(join(r, '.worktreeguard', 'releases', 'custom-release.json')), false);
+  const archived = configuredLock(r, 'custom/releases', 'custom-release');
+  assert.ok(archived.releasedAt);
+  assert.equal(existsSync(join(r, 'custom/leases', 'custom-release.json')), false);
 });
 
 test('--version flag', () => {

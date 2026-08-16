@@ -49,10 +49,11 @@ export function formatReport(report, format = 'text', options = {}) {
             : lane.missingWorktree
               ? '⚫ missing'
               : '🟢 ok';
-        const risks = lane.risks?.length ? lane.risks.map(redactSecrets).join(', ') : '—';
-        const task = lane.task ?? basename(lane.path);
-        const branch = lane.branch ?? 'detached';
-        const path = lane.path;
+        const patterns = r.reporting?.redactPatterns;
+        const risks = lane.risks?.length ? lane.risks.map(risk => redactSecrets(risk, patterns)).join(', ') : '—';
+        const task = redactSecrets(lane.task ?? basename(lane.path), patterns);
+        const branch = redactSecrets(lane.branch ?? 'detached', patterns);
+        const path = redactSecrets(lane.path, patterns);
         lines.push(`| ${task} | ${branch} | ${path} | ${status} | ${risks} |`);
       }
       lines.push('');
@@ -72,13 +73,13 @@ export function formatReport(report, format = 'text', options = {}) {
 
     // Expiry warnings
     if (md && r.lanes) {
-      const expiring = r.lanes.filter(l => isExpiringSoon(l.expiresAt));
+      const expiring = r.lanes.filter(l => isExpiringSoon(l.expiresAt, r.reporting?.warnBeforeExpiryHours));
       if (expiring.length) {
         lines.push(heading(2, '⏰ Expiring Soon'));
         lines.push('');
         for (const lane of expiring) {
           const hoursLeft = Math.round((Date.parse(lane.expiresAt) - Date.now()) / 3600000);
-          lines.push(`- **${lane.task}** — expires in ~${hoursLeft}h`);
+          lines.push(`- **${redactSecrets(lane.task, r.reporting?.redactPatterns)}** — expires in ~${hoursLeft}h`);
         }
         lines.push('');
       }

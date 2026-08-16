@@ -77,6 +77,10 @@ test('safe text passes through unchanged', () => {
   assert.equal(redactSecrets(text), text);
 });
 
+test('configured redaction patterns replace the matching token', () => {
+  assert.equal(redactSecrets('path/private-sensitive_value.txt', ['private-']), 'path/[REDACTED].txt');
+});
+
 // isExpiringSoon
 test('returns true for lease expiring in 1 hour', () => {
   const expiresAt = new Date(Date.now() + 3600 * 1000).toISOString();
