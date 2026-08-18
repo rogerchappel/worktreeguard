@@ -1,10 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { run } from '../src/index.js';
+
+const cli = join(import.meta.dirname, '..', 'src', 'index.js');
+
+function spawnCli(args, cwd = process.cwd()) {
+  return spawnSync(process.execPath, [cli, ...args], { cwd, encoding: 'utf8' });
+}
 
 function repo() {
   const path = mkdtempSync(join(tmpdir(), 'worktreeguard-arguments-'));
@@ -57,4 +63,34 @@ test('status and doctor enforce documented positional arity', () => {
 test('status and doctor reject unsupported formats before repository access', () => {
   assert.throws(() => run(['status', '/missing', '--format', 'yaml']), /--format must be one of/);
   assert.throws(() => run(['doctor', '/missing', '--format', 'yaml']), /--format must be one of/);
+});
+
+test('executable CLI reports unknown commands without a secondary error', () => {
+  const result = spawnCli(['unknown-ghp_12345678901234567890']);
+  assert.equal(result.status, 1);
+  assert.equal(result.stdout, '');
+  assert.equal(result.stderr, 'unknown command: unknown-[REDACTED]\n');
+  assert.doesNotMatch(result.stderr, /ReferenceError|\n\s+at /);
+});
+
+test('executable CLI reports invalid formats without a secondary error', () => {
+  const cwd = mkdtempSync(join(tmpdir(), 'worktreeguard-cli-errors-'));
+  mkdirSync(join(cwd, '.worktreeguard'));
+  writeFileSync(join(cwd, '.worktreeguard', 'config.json'), JSON.stringify({ redactPatterns: ['private-'] }));
+  const result = spawnCli(['status', '--format', 'private-sensitive'], cwd);
+  assert.equal(result.status, 1);
+  assert.equal(result.stdout, '');
+  assert.equal(result.stderr, '--format must be one of: text, json, markdown\n');
+  assert.doesNotMatch(result.stderr, /private-sensitive|ReferenceError|\n\s+at /);
+});
+
+test('executable CLI applies configured prefixes to error text', () => {
+  const cwd = mkdtempSync(join(tmpdir(), 'worktreeguard-cli-redaction-'));
+  mkdirSync(join(cwd, '.worktreeguard'));
+  writeFileSync(join(cwd, '.worktreeguard', 'config.json'), JSON.stringify({ redactPatterns: ['private-'] }));
+  const result = spawnCli(['unknown-private-sensitive'], cwd);
+  assert.equal(result.status, 1);
+  assert.equal(result.stdout, '');
+  assert.equal(result.stderr, 'unknown command: unknown-[REDACTED]\n');
+  assert.doesNotMatch(result.stderr, /private-sensitive|ReferenceError|\n\s+at /);
 });
