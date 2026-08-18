@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSy
 import { basename, dirname, join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { loadConfig, getLaneBranch, getWorktreePath } from './config.js';
+import { DEFAULT_CONFIG, loadConfig, getLaneBranch, getWorktreePath } from './config.js';
 import { redactSecrets, enforceMaxLanes } from './policy.js';
 import { formatReport } from './formatter.js';
 
@@ -211,5 +211,12 @@ export function run(argv = process.argv.slice(2)) {
   throw new CliError(`unknown command: ${cmd}`);
 }
 if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  try { console.log(run()); } catch (err) { console.error(redact(err.message || String(err))); process.exit(err.exitCode || 1); }
+  try {
+    console.log(run());
+  } catch (err) {
+    let patterns = DEFAULT_CONFIG.redactPatterns;
+    try { patterns = loadConfig(process.cwd()).redactPatterns; } catch {}
+    console.error(redactSecrets(err.message || String(err), patterns));
+    process.exit(err.exitCode || 1);
+  }
 }
