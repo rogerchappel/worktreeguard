@@ -44,10 +44,10 @@ export function formatReport(report, format = 'text', options = {}) {
       for (const lane of r.lanes) {
         const status = lane.dirty
           ? '🔴 dirty'
-          : lane.stale
-            ? '🟡 stale'
-            : lane.missingWorktree
+          : lane.risks?.includes('missing-worktree')
               ? '⚫ missing'
+            : lane.risks?.includes('stale')
+              ? '🟡 stale'
               : '🟢 ok';
         const patterns = r.reporting?.redactPatterns;
         const risks = lane.risks?.length ? lane.risks.map(risk => redactSecrets(risk, patterns)).join(', ') : '—';

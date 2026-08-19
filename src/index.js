@@ -155,10 +155,14 @@ function inspectRepo(repoInput) {
   const paths = new Set(lanes.map(l => l.path));
   for (const lock of locks) {
     const path = canonicalPath(lock.path);
-    if (!existsSync(path) || !paths.has(path)) lanes.push({ path, branch: lock.branch || null, task: lock.task, owner: lock.owner || null, expiresAt: lock.expiresAt || null, pr: lock.pr || null, dirty: false, dirtyFiles: [], risks: ['missing-worktree'] });
+    if (!existsSync(path) || !paths.has(path)) {
+      const risks = ['missing-worktree'];
+      if (lock.expiresAt && Date.parse(lock.expiresAt) < Date.now()) risks.push('stale');
+      lanes.push({ path, branch: lock.branch || null, task: lock.task, owner: lock.owner || null, expiresAt: lock.expiresAt || null, pr: lock.pr || null, dirty: false, dirtyFiles: [], risks });
+    }
   }
   const risks = [...new Set(lanes.flatMap(l => l.risks))];
-  const report = { repo, generatedAt: nowIso(), summary: { worktrees: lanes.length, dirty: lanes.filter(l => l.dirty).length, risks: risks.length }, risks, lanes };
+  const report = { repo, generatedAt: nowIso(), summary: { worktrees: lanes.length, dirty: lanes.filter(l => l.dirty).length, stale: lanes.filter(l => l.risks.includes('stale')).length, risks: risks.length }, risks, lanes };
   Object.defineProperty(report, 'reporting', {
     value: { redactPatterns: config.redactPatterns, warnBeforeExpiryHours: config.warnBeforeExpiryHours },
   });
