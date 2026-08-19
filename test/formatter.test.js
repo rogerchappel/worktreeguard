@@ -111,10 +111,6 @@ test('missing worktree renders with missing status in markdown', () => {
         dirty: false,
         dirtyFiles: [],
         risks: ['missing-worktree'],
-        missingWorktree: true,
-        stale: false,
-        duplicateBranch: false,
-        upstreamMissing: false,
       },
     ],
   };
