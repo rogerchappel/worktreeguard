@@ -280,6 +280,29 @@ test('doctor detects stale lease', async () => {
   assert.ok(staleLane.risks.includes('stale'), 'stale risk should be flagged');
 });
 
+test('CLI formats an inspected expired missing worktree consistently', () => {
+  const r = repo();
+  run(['lease', r, '--task', 'expired-missing']);
+  const lease = lock(r, 'expired-missing');
+  lease.expiresAt = '2020-01-01T00:00:00.000Z';
+  writeFileSync(join(r, '.worktreeguard', 'leases', 'expired-missing.json'), `${JSON.stringify(lease, null, 2)}\n`);
+  sh(`git worktree remove --force "${lease.path}"`, r);
+
+  const report = JSON.parse(run(['doctor', r, '--json']));
+  const lane = report.lanes.find(item => item.task === 'expired-missing');
+  assert.deepEqual(lane.risks, ['missing-worktree', 'stale']);
+  assert.equal(report.summary.stale, 1);
+
+  const text = run(['doctor', r, '--format', 'text']);
+  assert.match(text, /stale=1/);
+  assert.match(text, /missing-worktree,stale/);
+
+  const markdown = run(['doctor', r, '--format', 'markdown']);
+  assert.match(markdown, /\| Stale \| 1 \|/);
+  assert.match(markdown, /expired-missing.*⚫ missing.*missing-worktree, stale/);
+  assert.doesNotMatch(markdown, /expired-missing.*🟢 ok/);
+});
+
 test('release archives lease to .worktreeguard/releases', () => {
   const r = repo();
   run(['lease', r, '--task', 'release-demo']);
