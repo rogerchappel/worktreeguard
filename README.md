@@ -51,6 +51,10 @@ worktreeguard doctor <repo> [--format text|json|markdown] [--json]
 worktreeguard release <repo> <task> [--pr <url>] [--force] [--json]
 ```
 
+Boolean options are presence-only flags. Use `--force`, `--json`, `--help`, or
+`--version` without `=true`, `=false`, or another value; valued forms are
+rejected instead of being reinterpreted as enabled flags.
+
 ### `lease`
 
 Creates a branch and worktree for a task. By default, lanes are created under a sibling `.worktrees` directory, branches use `agent/<task>`, the base branch is `main`, and leases expire after 7 days.
@@ -96,7 +100,7 @@ Runs the same inspection for one repo and is intended as a gate before handoff o
 
 ### `release`
 
-Archives the lease and removes the worktree. It refuses dirty worktrees unless `--force` is provided.
+Archives the lease and removes the worktree. It refuses dirty worktrees unless the bare `--force` flag is provided.
 
 ## Risk flags
 

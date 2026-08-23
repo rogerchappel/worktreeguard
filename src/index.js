@@ -40,7 +40,10 @@ function parseArgs(argv) {
     const a = argv[i];
     if (a.startsWith('--')) {
       const [raw, inline] = a.slice(2).split('=', 2);
-      if (booleanOptions.has(raw)) flags[raw] = true;
+      if (booleanOptions.has(raw)) {
+        if (inline !== undefined) throw new CliError(`--${raw} does not accept a value; use --${raw}`);
+        flags[raw] = true;
+      }
       else {
         const value = inline ?? argv[i + 1];
         if (value === undefined || (inline === undefined && value.startsWith('--'))) {

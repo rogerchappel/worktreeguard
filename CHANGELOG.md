@@ -7,6 +7,10 @@ format and uses semantic versioning when versioned releases are published.
 
 ## [Unreleased]
 
+### Fixed
+
+- Reject values attached to boolean CLI flags so inputs such as `--force=false` cannot enable destructive behavior.
+
 ### Added
 
 - Initial project setup.

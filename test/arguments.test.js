@@ -6,6 +6,14 @@ import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { run } from '../src/index.js';
 
+test('boolean flags reject inline values', () => {
+  for (const flag of ['force', 'json', 'help', 'version']) {
+    for (const value of ['true', 'false', '1']) {
+      assert.throws(() => run([`--${flag}=${value}`]), new RegExp(`--${flag} does not accept a value`));
+    }
+  }
+});
+
 const cli = join(import.meta.dirname, '..', 'src', 'index.js');
 
 function spawnCli(args, cwd = process.cwd()) {
