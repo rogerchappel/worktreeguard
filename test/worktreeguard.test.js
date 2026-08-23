@@ -15,6 +15,19 @@ test('lease, status json, dirty risk, and release refusal', () => {
   const status = JSON.parse(run(['doctor', r, '--json'])); const dirty = status.lanes.find(l => l.task === 'fix-login'); assert.ok(dirty.risks.includes('dirty')); assert.match(dirty.dirtyFiles.join('\n'), /REDACTED|dirty.txt/);
   assert.throws(() => run(['release', r, 'fix-login']), /dirty/); assert.match(run(['release', r, 'fix-login', '--force']), /released fix-login/);
 });
+test('--force=false cannot release a dirty worktree', () => {
+  const r = repo(); run(['lease', r, '--task', 'boolean-force']);
+  const lane = JSON.parse(run(['status', r, '--json'])).lanes.find(l => l.task === 'boolean-force');
+  writeFileSync(join(lane.path, 'dirty.txt'), 'keep me');
+  assert.throws(
+    () => run(['release', r, 'boolean-force', '--force=false', '--json']),
+    /--force does not accept a value/,
+  );
+  const remaining = JSON.parse(run(['status', r, '--json'])).lanes.find(l => l.task === 'boolean-force');
+  assert.equal(remaining.path, lane.path);
+  assert.ok(remaining.risks.includes('dirty'));
+  assert.match(run(['release', r, 'boolean-force', '--force']), /released boolean-force/);
+});
 test('missing worktree is reported from lock', () => {
   const r = repo(); run(['lease', r, '--task', 'gone']); const lane = JSON.parse(run(['status', r, '--json'])).lanes.find(l => l.task === 'gone'); sh(`rm -rf ${JSON.stringify(lane.path)}`, r);
   const report = JSON.parse(run(['doctor', r, '--json'])); assert.ok(report.lanes.find(l => l.task === 'gone').risks.includes('missing-worktree'));
