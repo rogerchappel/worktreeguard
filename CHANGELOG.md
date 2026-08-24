@@ -7,19 +7,34 @@ format and uses semantic versioning when versioned releases are published.
 
 ## [Unreleased]
 
-### Fixed
-
-- Reject values attached to boolean CLI flags so inputs such as `--force=false` cannot enable destructive behavior.
+## [0.2.0] - 2026-08-25
 
 ### Added
 
-- Initial project setup.
+- Add configurable lease policy, reporting formats, expiry warnings, and stable
+  JSON/Markdown output for orchestrator handoff.
+- Add integration, policy, formatting, CLI, installation, and package smoke
+  coverage to the release gate.
+
+### Fixed
+
+- Validate repository configuration, lease records, command arity, option
+  values, canonical paths, and lane limits before mutating a worktree.
+- Honor configured worktree, lock, release, reporting, and redaction settings.
+- Keep status and doctor risk reports consistent for malformed, missing,
+  duplicated, stale, dirty, and upstream-less worktrees.
+- Restore executable diagnostics and the source-install package entry point.
+- Reject values attached to boolean CLI flags so inputs such as `--force=false` cannot enable destructive behavior.
+
+## [0.1.0] - 2026-05-04
+
+### Added
+
+- Initial local-first CLI with lease, status, doctor, and release commands.
+- Git worktree leases, safety checks, lock metadata, and text/JSON reporting.
 
 ## Release Links
 
-- Unreleased:
-  `https://github.com/rogerchappel/worktreeguard/compare/...HEAD`
-- Latest release:
-  `https://github.com/rogerchappel/worktreeguard/releases/latest`
-
-Replace placeholder links once the first release tag exists.
+[Unreleased]: https://github.com/rogerchappel/worktreeguard/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/rogerchappel/worktreeguard/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/rogerchappel/worktreeguard/releases/tag/v0.1.0
