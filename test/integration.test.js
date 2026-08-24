@@ -328,7 +328,7 @@ test('CLI archives releases in configured releaseDir', () => {
 });
 
 test('--version flag', () => {
-  assert.match(run(['--version']), /0\.1\.0/);
+  assert.match(run(['--version']), /0\.2\.0/);
 });
 
 test('unknown command throws helpful error', () => {
