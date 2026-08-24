@@ -12,6 +12,11 @@ fixture_repo="$install_root/fixture-repo"
 mkdir -p "$package_dir" "$fixture_repo"
 
 tarball="$(cd "$package_dir" && npm pack "$REPOSITORY_ROOT" --silent)"
+[ "$tarball" = 'worktreeguard-0.2.0.tgz' ]
+if git -C "$REPOSITORY_ROOT" rev-parse --verify --quiet refs/tags/v0.2.0 >/dev/null; then
+  echo 'release candidate tag v0.2.0 already exists' >&2
+  exit 1
+fi
 npm install --global --prefix "$prefix_dir" "$package_dir/$tarball"
 
 cli="$prefix_dir/bin/worktreeguard"

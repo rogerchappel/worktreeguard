@@ -1,9 +1,11 @@
-# Release candidate readiness
+# Historical v0.1.0 release candidate evidence
 
-Release artifacts are retained for review, but installation from releases,
-publishing to the npm registry, and Homebrew remain disabled pending review.
-The release gate checks the documented source installation with
-`npm run install-docs:smoke`.
+This file retains the verification evidence captured before v0.1.0. It is not
+the current release status. The v0.2.0 candidate is verified by the live
+`npm run release:check` gate, including a packed global installation, CLI
+entry-point execution, documented release invocation, candidate filename, and
+tag-collision check. Publishing to the npm registry and Homebrew remain
+disabled pending review.
 
 Generated: 2026-05-05T21:27:11Z
 Branch: `release-candidate/readiness`
