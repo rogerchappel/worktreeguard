@@ -72,7 +72,7 @@ V1 can be implemented as a TypeScript CLI using deterministic filesystem/git/pro
 worktreeguard lease ./my-repo --task fix-login-timeout --base main
 worktreeguard status --root ~/Developer/my-opensource
 worktreeguard doctor ./my-repo
-worktreeguard release fix-login-timeout --pr https://github.com/org/repo/pull/12
+worktreeguard release ./my-repo fix-login-timeout --pr https://github.com/org/repo/pull/12
 ```
 
 ## Verification
