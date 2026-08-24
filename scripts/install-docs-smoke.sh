@@ -21,7 +21,7 @@ npm install --global --prefix "$prefix_dir" "$package_dir/$tarball"
 
 cli="$prefix_dir/bin/worktreeguard"
 "$cli" --help | grep -Fq 'worktreeguard lease <repo>'
-"$cli" --version | grep -Fxq 'v0.2.0'
+"$cli" --version | grep -Fxq '0.2.0'
 
 grep -Fq 'worktreeguard release ./my-repo fix-login-timeout --pr https://github.com/org/repo/pull/12' "$REPOSITORY_ROOT/docs/PRD.md"
 git -C "$fixture_repo" init --quiet
