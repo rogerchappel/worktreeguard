@@ -208,7 +208,8 @@ function release(repoInput, taskOrPath, flags) {
 function help() { return `worktreeguard ${VERSION}\n\nUsage:\n  worktreeguard lease <repo> --task <slug> [--base <branch>] [--branch <branch>] [--root <dir>] [--days <count> | --expiresAt <timestamp>] [--json]\n  worktreeguard status [repo|--root <dir>] [--format text|json|markdown] [--json]\n  worktreeguard doctor <repo> [--format text|json|markdown] [--json]\n  worktreeguard release <repo> <task> [--pr <url>] [--force] [--json]\n`; }
 export function run(argv = process.argv.slice(2)) {
   const { flags, positional } = parseArgs(argv); const cmd = positional.shift();
-  if (!cmd || flags.help || cmd === 'help') return help(); if (flags.version || cmd === 'version') return VERSION;
+  if (flags.version || cmd === 'version') return VERSION;
+  if (!cmd || flags.help || cmd === 'help') return help();
   validateCommandArguments(cmd, flags, positional);
   const format = flags.json ? 'json' : (flags.format || 'text');
   if (cmd === 'lease') return formatReport({ repos: [{ ...inspectRepo(lease(positional[0] || '.', flags).repo), action: 'leased' }] }, format);
