@@ -7,7 +7,7 @@ import { DEFAULT_CONFIG, loadConfig, getLaneBranch, getWorktreePath } from './co
 import { redactSecrets, enforceMaxLanes } from './policy.js';
 import { formatReport } from './formatter.js';
 
-export const VERSION = '0.1.0';
+export const VERSION = '0.2.0';
 const WORKTREE_LOCK = '.worktreeguard/lease.json';
 
 class CliError extends Error { constructor(message, code = 1) { super(message); this.exitCode = code; } }

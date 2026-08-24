@@ -1,6 +1,6 @@
 {
   "name": "worktreeguard",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Local-first CLI for safe agent worktree leasing and stale lane audits.",
   "type": "module",
   "bin": {
