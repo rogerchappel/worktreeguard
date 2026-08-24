@@ -32,7 +32,7 @@ npm install -g .
 worktreeguard --help
 ```
 
-Publishing to the npm registry is disabled, so `npm install -g worktreeguard` is not available. The v0.1.0 GitHub release artifact also has a broken global executable entry point and should not be used for installation. To verify the documented source install and command in a temporary prefix, run `npm run install-docs:smoke` from a clone of this repository.
+Publishing to the npm registry is disabled, so `npm install -g worktreeguard` is not available. The v0.1.0 GitHub release artifact has a broken global executable entry point and should not be used for installation. The v0.2.0 candidate repairs the packaged entry point; until that release is published, install from source. To pack the candidate, install it in a temporary prefix, execute its CLI entry point, and verify the documented release command shape, run `npm run install-docs:smoke` from a clone of this repository.
 
 For local development from this repository:
 
