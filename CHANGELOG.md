@@ -12,6 +12,9 @@ tag is pushed and the Release workflow runs.
 
 ### Added
 
+- Add a release-state regression check that fails when the changelog
+  advertises a shipped release whose tag does not exist, so changelog and
+  package version drift cannot silently return.
 - Add configurable lease policy, reporting formats, expiry warnings, and stable
   JSON/Markdown output for orchestrator handoff.
 - Add integration, policy, formatting, CLI, installation, and package smoke
