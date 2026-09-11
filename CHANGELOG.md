@@ -7,7 +7,8 @@ format and uses semantic versioning when versioned releases are published.
 
 ## [Unreleased]
 
-## [0.2.0] - 2026-08-25
+These changes form the v0.2.0 release candidate; they ship when the `v0.2.0`
+tag is pushed and the Release workflow runs.
 
 ### Added
 
@@ -35,6 +36,5 @@ format and uses semantic versioning when versioned releases are published.
 
 ## Release Links
 
-[Unreleased]: https://github.com/rogerchappel/worktreeguard/compare/v0.2.0...HEAD
-[0.2.0]: https://github.com/rogerchappel/worktreeguard/compare/v0.1.0...v0.2.0
+[Unreleased]: https://github.com/rogerchappel/worktreeguard/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/rogerchappel/worktreeguard/releases/tag/v0.1.0
