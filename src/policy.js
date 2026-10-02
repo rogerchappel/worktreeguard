@@ -40,6 +40,7 @@ export function redactSecrets(text, configuredPatterns) {
   const patterns = configuredPatterns
     ? configuredPatterns.map(pattern => new RegExp(`${escapeRegExp(pattern)}[A-Za-z0-9_-]*`, 'g'))
     : [
+        /glpat-[A-Za-z0-9_-]{20,}/g,
         /ghp_[A-Za-z0-9_]{20,}/g,
         /github_pat_[A-Za-z0-9_]{20,}/g,
         /sk-[A-Za-z0-9_]{20,}/g,

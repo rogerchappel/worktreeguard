@@ -32,3 +32,16 @@ test('missing worktree is reported from lock', () => {
   const r = repo(); run(['lease', r, '--task', 'gone']); const lane = JSON.parse(run(['status', r, '--json'])).lanes.find(l => l.task === 'gone'); sh(`rm -rf ${JSON.stringify(lane.path)}`, r);
   const report = JSON.parse(run(['doctor', r, '--json'])); assert.ok(report.lanes.find(l => l.task === 'gone').risks.includes('missing-worktree'));
 });
+
+test('default secret redaction covers GitLab and existing token families', async () => {
+  const { redactSecrets } = await import('../src/policy.js');
+  const text = 'glpat-abcdefghijklmnopqrst ghp_abcdefghijklmnopqrst github_pat_abcdefghijklmnopqrst sk-abcdefghijklmnopqrst xoxb-abcdefghijk';
+  const redacted = redactSecrets(text);
+  assert.equal((redacted.match(/\[REDACTED\]/g) || []).length, 5);
+  assert.doesNotMatch(redacted, /glpat-|ghp_|github_pat_|sk-|xoxb-/);
+});
+
+test('default configuration includes GitLab token prefix', async () => {
+  const { DEFAULT_CONFIG } = await import('../src/config.js');
+  assert.ok(DEFAULT_CONFIG.redactPatterns.includes('glpat-'));
+});

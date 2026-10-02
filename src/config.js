@@ -14,7 +14,7 @@ export const DEFAULT_CONFIG = {
   worktreeRoot: '.worktrees',
   lockDir: '.worktreeguard/leases',
   releaseDir: '.worktreeguard/releases',
-  redactPatterns: ['ghp_', 'github_pat_', 'sk-', 'xoxb-', 'xoxp-', 'xoxr-', 'xoxs-'],
+  redactPatterns: ['glpat-', 'ghp_', 'github_pat_', 'sk-', 'xoxb-', 'xoxp-', 'xoxr-', 'xoxs-'],
   maxActiveLanes: 10,
   warnBeforeExpiryHours: 24,
 };
